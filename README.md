@@ -356,23 +356,4 @@ k6 run --vus 100 --duration 60s load-test.js
 - Cosmos DB serverless mode for variable workloads
 - Reserved instances for baseline capacity
 
-## 📝 License
 
-This project was created for the Fexco Principal Engineer interview process.
-
-## 👤 Author
-
-Built as part of the Fexco Principal Engineer assessment.
-
----
-
-## 🎯 Interview Demo Checklist
-
-- [ ] Azure resources provisioned
-- [ ] Services deployed to AKS
-- [ ] Application Insights configured
-- [ ] Demonstrate REST API calls
-- [ ] Show WebSocket real-time updates
-- [ ] Display auto-scaling in action
-- [ ] Show monitoring dashboards
-- [ ] Explain architecture decisions
