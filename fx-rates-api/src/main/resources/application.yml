@@ -1,0 +1,147 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: fx-rates-api
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 5000 # 5 seconds default TTL
+
+# Azure Cosmos DB Configuration
+azure:
+  cosmos:
+    endpoint: ${COSMOS_ENDPOINT:}
+    key: ${COSMOS_KEY:}
+    database: ${COSMOS_DATABASE:fxrates}
+    container: rates
+    consistency-level: SESSION
+    connection-mode: DIRECT
+    request-timeout: 5s
+
+# Azure Application Insights
+  application-insights:
+    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:}
+    enabled: ${APPINSIGHTS_ENABLED:false}
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  health:
+    redis:
+      enabled: true
+    diskspace:
+      enabled: true
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      cosmosdb:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      redis:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+
+  # Rate Limiter Configuration
+  ratelimiter:
+    instances:
+      default:
+        limit-for-period: 1000
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+
+  # Retry Configuration
+  retry:
+    instances:
+      cosmosdb:
+        max-attempts: 3
+        wait-duration: 100ms
+        retry-exceptions:
+          - com.azure.cosmos.CosmosException
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fexco.fxrates: DEBUG
+    com.azure: WARN
+    org.springframework.data.redis: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Custom Application Configuration
+app:
+  fx-rates:
+    cache:
+      enabled: true
+      ttl-seconds: 5
+      prefetch-enabled: true
+      prefetch-pairs:
+        - EURUSD
+        - GBPUSD
+        - USDJPY
+        - AUDUSD
+        - USDCAD
+
+    batch:
+      max-size: 100
+      timeout-seconds: 10
+
+    providers:
+      primary: ExternalFXProvider
+      fallback: BackupFXProvider

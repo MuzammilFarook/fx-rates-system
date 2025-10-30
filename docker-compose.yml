@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # FX Rates API Service (Independent Microservice)
+  fx-rates-api:
+    build:
+      context: .
+      dockerfile: fx-rates-api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - COSMOS_ENDPOINT=${COSMOS_ENDPOINT}
+      - COSMOS_KEY=${COSMOS_KEY}
+      - COSMOS_DATABASE=fxrates
+      - APPINSIGHTS_INSTRUMENTATIONKEY=${APPINSIGHTS_INSTRUMENTATIONKEY}
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Rate Ingestion Service (Independent Microservice)
+  rate-ingestion-service:
+    build:
+      context: .
+      dockerfile: rate-ingestion-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - EVENTHUB_CONNECTION_STRING=${EVENTHUB_CONNECTION_STRING}
+      - EVENTHUB_NAMESPACE=${EVENTHUB_NAMESPACE}
+      - APPINSIGHTS_INSTRUMENTATIONKEY=${APPINSIGHTS_INSTRUMENTATIONKEY}
+      - EXTERNAL_FX_PROVIDER_URL=https://api.exchangerate-api.com/v4/latest/
+    restart: unless-stopped
+
+  # WebSocket Service (Independent Microservice)
+  websocket-service:
+    build:
+      context: .
+      dockerfile: websocket-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EVENTHUB_CONNECTION_STRING=${EVENTHUB_CONNECTION_STRING}
+      - EVENTHUB_NAMESPACE=${EVENTHUB_NAMESPACE}
+      - APPINSIGHTS_INSTRUMENTATIONKEY=${APPINSIGHTS_INSTRUMENTATIONKEY}
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis-data:

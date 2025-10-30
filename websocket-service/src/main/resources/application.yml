@@ -1,0 +1,52 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: websocket-service
+
+  # Redis Configuration for Pub/Sub
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+# Azure Event Hubs Configuration
+azure:
+  eventhub:
+    namespace: ${EVENTHUB_NAMESPACE:}
+    connection-string: ${EVENTHUB_CONNECTION_STRING:}
+    topic: ${EVENTHUB_TOPIC:fx-rates-updates}
+    consumer-group: ${EVENTHUB_CONSUMER_GROUP:websocket-service}
+
+  # Application Insights
+  application-insights:
+    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:}
+    enabled: ${APPINSIGHTS_ENABLED:false}
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,websocket
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.fexco.fxrates: DEBUG
+    org.springframework.web.socket: DEBUG
+
+# Custom Application Configuration
+app:
+  websocket:
+    # Connection limits
+    max-connections: 10000
+    max-subscriptions-per-connection: 50
+
+    # Heartbeat configuration
+    heartbeat:
+      enabled: true
+      interval-seconds: 30

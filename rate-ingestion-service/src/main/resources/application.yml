@@ -1,0 +1,101 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: rate-ingestion-service
+
+# Azure Configuration
+azure:
+  # Cosmos DB Configuration
+  cosmos:
+    endpoint: ${COSMOS_ENDPOINT:}
+    key: ${COSMOS_KEY:}
+    database: ${COSMOS_DATABASE:fxrates}
+    container: rates
+    consistency-level: SESSION
+    connection-mode: DIRECT
+
+  # Event Hubs Configuration
+  eventhub:
+    namespace: ${EVENTHUB_NAMESPACE:}
+    connection-string: ${EVENTHUB_CONNECTION_STRING:}
+    topic: ${EVENTHUB_TOPIC:fx-rates-updates}
+
+  # Application Insights
+  application-insights:
+    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:}
+    enabled: ${APPINSIGHTS_ENABLED:false}
+
+# Management & Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,scheduledtasks
+  endpoint:
+    health:
+      show-details: always
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      externalProvider:
+        register-health-indicator: true
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+
+  retry:
+    instances:
+      externalProvider:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.fexco.fxrates: DEBUG
+    com.azure: WARN
+
+# Custom Application Configuration
+app:
+  ingestion:
+    # Scheduling configuration
+    schedule:
+      enabled: true
+      cron: "*/5 * * * * *" # Every 5 seconds
+
+    # Provider configuration
+    provider:
+      # Provider type: alpha-vantage | mock-reuters | demo
+      type: ${FX_PROVIDER_TYPE:alpha-vantage}
+
+      # Enable automatic fallback to other providers
+      fallback-enabled: true
+
+      # Alpha Vantage configuration (professional provider)
+      alpha-vantage:
+        api-key: ${ALPHA_VANTAGE_API_KEY:}
+        # Get free API key at: https://www.alphavantage.co/support/#api-key
+        # Free tier: 500 requests/day, 5 requests/minute
+
+      # Mock Reuters configuration (offline demo)
+      # No configuration needed - always available
+
+    # Currency pairs to fetch (comma-separated)
+    currency-pairs: EURUSD,GBPUSD,USDJPY,AUDUSD,USDCAD,EURGBP,EURJPY,GBPJPY
+
+    # Validation configuration
+    validation:
+      enabled: true
+      max-deviation-percent: 5.0 # Alert if rate changes > 5%
+
+    # Event Hub publishing configuration
+    eventhub:
+      batch-size: 100
+      flush-interval-ms: 1000

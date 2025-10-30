@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourceGroupName": {
+      "value": "fexco-fx-rates-rg"
+    },
+    "location": {
+      "value": "westus2"
+    },
+    "environment": {
+      "value": "dev"
+    },
+    "cosmosDatabaseName": {
+      "value": "fxrates"
+    },
+    "cosmosContainerName": {
+      "value": "rates"
+    },
+    "eventHubName": {
+      "value": "fx-rates-updates"
+    },
+    "eventHubSkuTier": {
+      "value": "Standard"
+    },
+    "eventHubConsumerGroup": {
+      "value": "websocket-service"
+    },
+    "deployRedis": {
+      "value": false
+    },
+    "tags": {
+      "value": {
+        "Project": "FX-Rates-System",
+        "Environment": "dev",
+        "ManagedBy": "Bicep",
+        "Purpose": "Interview-Demo",
+        "Owner": "Fexco-Interview"
+      }
+    }
+  }
+}

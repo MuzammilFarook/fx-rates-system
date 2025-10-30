@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-ingestion-service
+  labels:
+    app: rate-ingestion-service
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rate-ingestion-service
+  template:
+    metadata:
+      labels:
+        app: rate-ingestion-service
+        version: v1
+    spec:
+      containers:
+      - name: rate-ingestion-service
+        image: fexco/rate-ingestion-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          name: http
+          protocol: TCP
+        env:
+        - name: EVENTHUB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: azure-secrets
+              key: eventhub-connection-string
+        - name: APPINSIGHTS_INSTRUMENTATIONKEY
+          valueFrom:
+            secretKeyRef:
+              name: azure-secrets
+              key: appinsights-key
+        - name: EXTERNAL_FX_PROVIDER_URL
+          value: "https://api.exchangerate-api.com/v4/latest/"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rate-ingestion-service
+  labels:
+    app: rate-ingestion-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8081
+    protocol: TCP
+    name: http
+  selector:
+    app: rate-ingestion-service
+---
+# KEDA ScaledObject for Event Hub based scaling
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rate-ingestion-scaledobject
+spec:
+  scaleTargetRef:
+    name: rate-ingestion-service
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+  - type: azure-eventhub
+    metadata:
+      connectionFromEnv: EVENTHUB_CONNECTION_STRING
+      storageConnectionFromEnv: AZURE_STORAGE_CONNECTION_STRING
+      consumerGroup: rate-ingestion-service
+      unprocessedEventThreshold: '100'
+      activationUnprocessedEventThreshold: '10'
