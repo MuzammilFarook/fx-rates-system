@@ -1,4 +1,4 @@
-# FX Rates System - Fexco Principal Engineer Implementation
+# FX Rates System 
 
 A production-ready, globally distributed FX rates system built with Spring Boot microservices and Azure cloud services.
 
